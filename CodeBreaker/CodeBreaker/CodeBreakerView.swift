@@ -12,9 +12,9 @@ struct CodeBreakerView: View {
     
     var body: some View {
         VStack {
-//            if game.isWon {
+            if game.isWon {
                 view(for: game.masterCode)
-//            }
+            }
             ScrollView {
                 view(for: game.guess)
                 ForEach(game.attempts.indices.reversed(), id: \.self) { index in
