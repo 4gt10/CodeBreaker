@@ -7,25 +7,98 @@
 
 import SwiftUI
 
-typealias Peg = Color
+typealias Peg = String
+
+extension Peg {
+    var color: Color? {
+        Constant.namedColors[self]
+    }
+}
 
 struct CodeBreaker {
-    var masterCode: Code = Code(kind: .masterCode)
-    var guess: Code = Code(kind: .guess)
-    var attempts: [Code] = []
-    let pegChoices: [Peg]
+    enum Kind {
+        case colors
+        case emojis
+        case unknown
+        
+        static func random(with data: [String]) -> Kind {
+            let isColors = data.allSatisfy { $0.color != nil }
+            if data.isEmpty {
+                return .unknown
+            } else if isColors {
+                return .colors
+            } else {
+                return .emojis
+            }
+        }
+    }
     
-    init(pegChoices: [Peg] = [.red, .green, .blue, .yellow]) {
-        self.pegChoices = pegChoices
-        masterCode.randomize(from: pegChoices)
-        print(masterCode)
+    static func getRandomPegs(for kind: Kind, count: Int) -> [Peg] {
+        let resultCount: Int
+        if count < Constant.minimumPegsCount {
+            resultCount = Constant.minimumPegsCount
+        } else if count > Constant.maximumPegsCount {
+            resultCount = Constant.maximumPegsCount
+        } else {
+            resultCount = count
+        }
+        
+        let result: [Peg]
+        
+        switch kind {
+        case .colors:
+            result = Constant.colorNames
+        case .emojis:
+            result = Constant.gameCollections.randomElement() ?? []
+        case .unknown:
+            return []
+        }
+        
+        return Array(result.prefix(upTo: resultCount))
+    }
+    
+    var kind: Kind = .unknown
+    var masterCode: Code = .init(kind: .masterCode, pegs: [])
+    var guess: Code = .init(kind: .guess, pegs: [])
+    var attempts: [Code] = []
+    var pegChoices: [Peg] = []
+    
+    init(
+        kind: Kind = .random(with: Constant.gameCollections.randomElement() ?? []),
+        pegsCount: Int = .random(in: Constant.minimumPegsCount...Constant.maximumPegsCount)
+    ) {
+        restart(kind: kind, pegsCount: pegsCount)
     }
     
     var isWon: Bool {
         attempts.contains(where: { $0.match(against: masterCode).allSatisfy({ $0 == .exact }) })
     }
     
+    mutating func restart(
+        kind: Kind = .random(with: Constant.gameCollections.randomElement() ?? []),
+        pegsCount: Int = .random(in: Constant.minimumPegsCount...Constant.maximumPegsCount)
+    ) {
+        self.kind = kind
+        pegChoices = Self.getRandomPegs(
+            for: kind,
+            count: Int.random(in: Constant.minimumPegsCount...Constant.maximumPegsCount)
+        )
+        masterCode = .init(kind: .masterCode, pegs: pegChoices)
+        masterCode.randomize(from: pegChoices)
+        guess = .init(kind: .guess, pegs: Array(repeating: Code.missing, count: pegChoices.count))
+        attempts = []
+        print(masterCode)
+    }
+    
     mutating func attemptGuess() {
+        if attempts.contains(where: { $0.pegs == guess.pegs }) {
+            print("Guess error: Already tried this combination")
+            return
+        }
+        if guess.pegs.allSatisfy({ $0 == Code.missing }) {
+            print("Guess error: Pegs not chosen")
+            return
+        }
         var attempt = guess
         attempt.kind = .attempt(attempt.match(against: masterCode))
         attempts.append(attempt)
@@ -44,9 +117,9 @@ struct CodeBreaker {
 
 struct Code {
     var kind: Kind
-    var pegs: [Peg] = Array(repeating: Code.missing, count: 4)
+    var pegs: [Peg]
     
-    static let missing: Peg = .clear
+    static let missing: Peg = ""
     
     enum Kind: Equatable {
         case masterCode
@@ -87,4 +160,56 @@ struct Code {
         }
         return results
     }
+}
+
+private enum Constant {
+    static let minimumPegsCount = 3
+    static let maximumPegsCount = 6
+    static let namedColors: [String: Color] = [
+        "black": .black, "white": .white, "gray": .gray,
+        "red": .red, "green": .green, "blue": .blue,
+        "orange": .orange, "yellow": .yellow, "pink": .pink,
+        "purple": .purple
+    ]
+    static let colorNames = Array<String>(namedColors.keys)
+    static let colors = Array<Color>(namedColors.values)
+    static let smileyEmojis: [String] = [
+        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
+        "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
+        "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜",
+        "🤪", "🤨", "🧐", "🤓", "😎", "🥳", "😏", "😒"
+    ]
+    static let carEmojis: [String] = [
+        "🚗", "🚕", "🚙", "🚌",
+        "🚎", "🏎️", "🚓", "🚑",
+        "🚒", "🚐", "🚚", "🚛",
+        "🚜", "🛵", "🏍️", "🚲"
+    ]
+    static let animalEmojis: [String] = [
+        // Mammals
+        "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐻‍❄️", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐒",
+        "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛",
+        // Reptiles & Amphibians
+        "🐊", "🐢", "🐍", "🦎", "🐸", "🐙",
+        // Marine
+        "🐠", "🐟", "🐡", "🐬", "🐳", "🐋", "🦈",
+        // Insects & Small Critters
+        "🐞", "🦋", "🐌", "🐜", "🦟", "🦗", "🕷️", "🕸️", "🐝",
+        // Farm & Work Animals
+        "🐄", "🐖", "🐏", "🐑", "🐐", "🐪", "🐫", "🦙", "🦒", "🐘", "🦏", "🦛", "🐁", "🐀",
+        // Wild Animals
+        "🦍", "🦧", "🐆", "🐅", "🐊", "🦓", "🦌", "🦬", "🐃", "🦣", "🦫", "🐫",
+        // Birds (more)
+        "🦜", "🦢", "🦩", "🕊️", "🐦‍⬛", "🦚", "🦃", "🐓",
+        // Sea Creatures (more)
+        "🐚", "🪸", "🐠", "🐟",
+        // Prehistoric
+        "🦕", "🦖"
+    ]
+    static let gameCollections: [[String]] = [
+        colorNames,
+        smileyEmojis,
+        animalEmojis,
+        carEmojis
+    ]
 }

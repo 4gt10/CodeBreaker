@@ -21,6 +21,11 @@ struct CodeBreakerView: View {
                     view(for: game.attempts[index])
                 }
             }
+            Button("Restart") {
+                withAnimation {
+                    game.restart()
+                }
+            }
             
         }
         .padding()
@@ -35,18 +40,21 @@ struct CodeBreakerView: View {
         .withMaximumFontSize
     }
     
+    @ViewBuilder
     private func peg(for code: Code, at index: Int) -> some View {
         Circle()
+            .foregroundStyle(.clear)
             .overlay {
-                if code.pegs[index] == Code.missing {
-                    Circle().stroke(Color.gray)
-                }
-            }
-            .contentShape(Circle())
-            .foregroundStyle(code.pegs[index])
-            .onTapGesture {
-                if code.kind == .guess {
-                    game.changeGuessPeg(at: index)
+                switch game.kind {
+                case .colors:
+                    Circle()
+                        .foregroundStyle(code.pegs[index].color ?? .clear)
+                case .emojis:
+                    Text(code.pegs[index])
+                        .withMaximumFontSize
+                        .scaledToFit()
+                case .unknown:
+                    Text("❓")
                 }
             }
     }
@@ -55,6 +63,17 @@ struct CodeBreakerView: View {
         HStack {
             ForEach(code.pegs.indices, id: \.self) { index in
                 peg(for: code, at: index)
+                    .overlay {
+                        if code.pegs[index] == Code.missing {
+                            Circle().stroke(Color.gray)
+                        }
+                    }
+                    .contentShape(Circle())
+                    .onTapGesture {
+                        if code.kind == .guess {
+                            game.changeGuessPeg(at: index)
+                        }
+                    }
             }
             Group {
                 switch code.kind {
