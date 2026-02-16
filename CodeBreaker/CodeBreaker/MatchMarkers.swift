@@ -27,7 +27,7 @@ struct MatchMarkers: View {
     @ViewBuilder
     private func matchMarkersStacks(rowsPerStack: Int) -> some View {
         let stacks = matchesStacks(rowsPerStack: rowsPerStack)
-        HStack {
+        HStack(alignment: .top) {
             ForEach(stacks.indices, id: \.self) { stackIndex in
                 let stack = stacks[stackIndex]
                 VStack {
