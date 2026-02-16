@@ -49,7 +49,7 @@ struct CodeBreaker {
         case .colors:
             result = Constant.colorNames
         case .emojis:
-            result = Constant.gameCollections.randomElement() ?? []
+            result = Constant.emojiCollections.randomElement() ?? []
         case .unknown:
             return []
         }
@@ -206,10 +206,10 @@ private enum Constant {
         // Prehistoric
         "🦕", "🦖"
     ]
-    static let gameCollections: [[String]] = [
-        colorNames,
+    static let emojiCollections: [[String]] = [
         smileyEmojis,
         animalEmojis,
         carEmojis
     ]
+    static let gameCollections: [[String]] = [colorNames] + emojiCollections
 }
