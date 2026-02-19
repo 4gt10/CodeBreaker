@@ -14,11 +14,15 @@ enum Match {
 }
 
 struct MatchMarkers: View {
+    // MARK: Data in
+    
     private let matches: [Match]
     
     init(matches: [Match]) {
         self.matches = matches
     }
+    
+    // MARK: - Body
     
     var body: some View {
         matchMarkersStacks(rowsPerStack: 2)

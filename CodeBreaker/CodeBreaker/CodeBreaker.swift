@@ -10,6 +10,8 @@ import SwiftUI
 typealias Peg = String
 
 extension Peg {
+    static let missing = ""
+    
     var color: Color? {
         Constant.namedColors[self]
     }
@@ -70,8 +72,8 @@ struct CodeBreaker {
         restart(kind: kind, pegsCount: pegsCount)
     }
     
-    var isWon: Bool {
-        attempts.contains(where: { $0.match(against: masterCode).allSatisfy({ $0 == .exact }) })
+    var isOver: Bool {
+        attempts.last?.pegs == masterCode.pegs
     }
     
     mutating func restart(
@@ -85,7 +87,7 @@ struct CodeBreaker {
         )
         masterCode = .init(kind: .masterCode, pegs: pegChoices)
         masterCode.randomize(from: pegChoices)
-        guess = .init(kind: .guess, pegs: Array(repeating: Code.missing, count: pegChoices.count))
+        guess = .init(kind: .guess, pegs: Array(repeating: Peg.missing, count: pegChoices.count))
         attempts = []
         print(masterCode)
     }
@@ -95,13 +97,14 @@ struct CodeBreaker {
             print("Guess error: Already tried this combination")
             return
         }
-        if guess.pegs.allSatisfy({ $0 == Code.missing }) {
+        if guess.pegs.allSatisfy({ $0 == Peg.missing }) {
             print("Guess error: Pegs not chosen")
             return
         }
         var attempt = guess
         attempt.kind = .attempt(attempt.match(against: masterCode))
         attempts.append(attempt)
+        guess.reset()
     }
     
     mutating func changeGuessPeg(at index: Int) {
@@ -110,55 +113,14 @@ struct CodeBreaker {
             let newPeg = pegChoices[(indexOfExistingPegInPegChocies + 1) % pegChoices.count]
             guess.pegs[index] = newPeg
         } else {
-            guess.pegs[index] = pegChoices.first ?? Code.missing
-        }
-    }
-}
-
-struct Code {
-    var kind: Kind
-    var pegs: [Peg]
-    
-    static let missing: Peg = ""
-    
-    enum Kind: Equatable {
-        case masterCode
-        case guess
-        case attempt([Match])
-        case unknown
-    }
-    
-    mutating func randomize(from pegChoices: [Peg]) {
-        for index in pegChoices.indices {
-            pegs[index] = pegChoices.randomElement() ?? Code.missing
+            guess.pegs[index] = pegChoices.first ?? Peg.missing
         }
     }
     
-    var matches: [Match] {
-        switch kind {
-        case .attempt(let matches): return matches
-        default: return []
-        }
-    }
-    
-    func match(against otherCode: Code) -> [Match] {
-        var results: [Match] = Array(repeating: .noMatch, count: pegs.count)
-        var pegsToMatch = otherCode.pegs
-        for index in pegs.indices.reversed() {
-            if pegsToMatch.count > index, pegsToMatch[index] == pegs[index] {
-                results[index] = .exact
-                pegsToMatch.remove(at: index)
-            }
-        }
-        for index in pegs.indices {
-            if results[index] != .exact {
-                if let matchIndex = pegsToMatch.firstIndex(of: pegs[index]) {
-                    results[index] = .notExact
-                    pegsToMatch.remove(at: matchIndex)
-                }
-            }
-        }
-        return results
+    mutating func setGuessPeg(_ peg: Peg, at index: Int) {
+        guard guess.pegs.indices.contains(index) else { return }
+        
+        guess.pegs[index] = peg
     }
 }
 
