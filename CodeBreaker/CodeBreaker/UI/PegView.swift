@@ -36,11 +36,6 @@ struct PegView: View {
                     Text("❓")
                 }
             }
-            .overlay {
-                if peg == .missing {
-                    pegShape.stroke(Color.gray)
-                }
-            }
     }
     
     private let pegShape = Circle()

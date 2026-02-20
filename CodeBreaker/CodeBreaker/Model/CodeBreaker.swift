@@ -128,7 +128,7 @@ private enum Constant {
     static let minimumPegsCount = 3
     static let maximumPegsCount = 6
     static let namedColors: [String: Color] = [
-        "black": .black, "white": .white, "gray": .gray,
+        "black": .black, "gray": .gray,
         "red": .red, "green": .green, "blue": .blue,
         "orange": .orange, "yellow": .yellow, "pink": .pink,
         "purple": .purple
