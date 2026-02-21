@@ -16,11 +16,14 @@ struct CodeView<AncillaryView>: View where AncillaryView: View {
     // MARK: Data Shared with me
     @Binding var selection: Int
     
+    // MARK: Data Owned by me
+    @Namespace private var selectionNamespace
+    
     init(
         _ code: Code,
         kind: CodeBreaker.Kind,
         selection: Binding<Int> = .constant(-1),
-        ancillaryView: @escaping () -> AncillaryView
+        @ViewBuilder ancillaryView: @escaping () -> AncillaryView
     ) {
         self.code = code
         self.kind = kind
@@ -36,10 +39,15 @@ struct CodeView<AncillaryView>: View where AncillaryView: View {
                 PegView(code.pegs[index], kind: kind)
                     .padding(Selection.padding)
                     .background {
-                        if selection == index, code.kind == .guess {
-                            Selection.shape
-                                .foregroundColor(Selection.color)
+                        Group {
+                            if selection == index, code.kind == .guess {
+                                Selection.shape
+                                    .foregroundColor(Selection.color)
+                                    .matchedGeometryEffect(id: "selection", in: selectionNamespace)
+                                
+                            }
                         }
+                        .animation(.selection, value: selection)
                     }
                     .onTapGesture {
                         if code.kind == .guess {

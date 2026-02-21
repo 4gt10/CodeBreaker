@@ -10,9 +10,7 @@ import SwiftUI
 
 extension View {
     @ViewBuilder
-    var withMaximumFontSize: some View {
-        let minimumFontSize = 10.0
-        let maximumFontSize = 100.0
+    func flexibleFontSize(minimumFontSize: CGFloat = 10.0, maximumFontSize: CGFloat = 100.0) -> some View {
         let scaleFactor = minimumFontSize / maximumFontSize
         self
             .font(.system(size: maximumFontSize))

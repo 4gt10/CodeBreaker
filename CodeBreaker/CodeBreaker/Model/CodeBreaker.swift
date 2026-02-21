@@ -89,7 +89,6 @@ struct CodeBreaker {
         masterCode.randomize(from: pegChoices)
         guess = .init(kind: .guess, pegs: Array(repeating: Peg.missing, count: pegChoices.count))
         attempts = []
-        print(masterCode)
     }
     
     mutating func attemptGuess() {

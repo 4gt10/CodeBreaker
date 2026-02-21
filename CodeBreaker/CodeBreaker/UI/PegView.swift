@@ -30,7 +30,7 @@ struct PegView: View {
                         .foregroundStyle(peg.color ?? .clear)
                 case .emojis:
                     Text(peg)
-                        .withMaximumFontSize
+                        .flexibleFontSize()
                         .scaledToFit()
                 case .unknown:
                     Text("❓")
