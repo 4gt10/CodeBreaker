@@ -49,6 +49,11 @@ struct CodeView<AncillaryView>: View where AncillaryView: View {
                         }
                         .animation(.selection, value: selection)
                     }
+                    .overlay {
+                        if code.isHidden {
+                            Selection.shape.foregroundColor(.gray)
+                        }
+                    }
                     .onTapGesture {
                         if code.kind == .guess {
                             selection = index
@@ -72,7 +77,7 @@ fileprivate enum Selection {
 #Preview {
     CodeView(
         .init(
-            kind: .masterCode, pegs: [.missing]),
+            kind: .masterCode(isHidden: true), pegs: [.missing]),
         kind: .colors,
         selection: .constant(0)
     ) { EmptyView() }

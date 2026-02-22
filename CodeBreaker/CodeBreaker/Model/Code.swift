@@ -13,10 +13,17 @@ struct Code {
     var pegs: [Peg]
     
     enum Kind: Equatable {
-        case masterCode
+        case masterCode(isHidden: Bool)
         case guess
         case attempt([Match])
         case unknown
+    }
+    
+    var isHidden: Bool {
+        switch kind {
+        case .masterCode(let isHidden): isHidden
+        default: false
+        }
     }
     
     mutating func randomize(from pegChoices: [Peg]) {

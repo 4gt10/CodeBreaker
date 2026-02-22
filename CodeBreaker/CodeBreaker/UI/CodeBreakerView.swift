@@ -20,10 +20,8 @@ struct CodeBreakerView: View {
     var body: some View {
         VStack {
             let kind = game.kind
-            if game.isOver {
-                CodeView(game.masterCode, kind: kind) {
-                    Text("🥳").flexibleFontSize()
-                }
+            CodeView(game.masterCode, kind: kind) {
+                ElapsedTime(startTime: game.startTime, endTime: game.endTime)
             }
             ScrollView {
                 if !game.isOver {
@@ -88,11 +86,11 @@ struct CodeBreakerView: View {
     
     private func restart() {
         withAnimation(.restart) {
-            restarting = true
+            restarting = game.isOver
+            game.restart()
+            selection = 0
         } completion: {
             withAnimation(.restart) {
-                game.restart()
-                selection = 0
                 restarting = false
             }
         }

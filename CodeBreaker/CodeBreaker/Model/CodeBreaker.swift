@@ -60,10 +60,12 @@ struct CodeBreaker {
     }
     
     var kind: Kind = .unknown
-    var masterCode: Code = .init(kind: .masterCode, pegs: [])
+    var masterCode: Code = .init(kind: .masterCode(isHidden: true), pegs: [])
     var guess: Code = .init(kind: .guess, pegs: [])
     var attempts: [Code] = []
     var pegChoices: [Peg] = []
+    var startTime: Date = .now
+    var endTime: Date?
     
     init(
         kind: Kind = .random(with: Constant.gameCollections.randomElement() ?? []),
@@ -85,10 +87,12 @@ struct CodeBreaker {
             for: kind,
             count: Int.random(in: Constant.minimumPegsCount...Constant.maximumPegsCount)
         )
-        masterCode = .init(kind: .masterCode, pegs: pegChoices)
+        masterCode = .init(kind: .masterCode(isHidden: true), pegs: pegChoices)
         masterCode.randomize(from: pegChoices)
         guess = .init(kind: .guess, pegs: Array(repeating: Peg.missing, count: pegChoices.count))
         attempts = []
+        startTime = .now
+        endTime = nil
     }
     
     mutating func attemptGuess() {
@@ -104,6 +108,12 @@ struct CodeBreaker {
         attempt.kind = .attempt(attempt.match(against: masterCode))
         attempts.append(attempt)
         guess.reset()
+        
+        if isOver {
+            let masterCode = self.masterCode
+            self.masterCode = .init(kind: .masterCode(isHidden: false), pegs: masterCode.pegs)
+            endTime = .now
+        }
     }
     
     mutating func changeGuessPeg(at index: Int) {
