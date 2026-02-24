@@ -1,5 +1,5 @@
 //
-//  MatchMarkers.swift
+//  MatchMarkersView.swift
 //  CodeBreaker
 //
 //  Created by 4gt10 on 14.02.2026.
@@ -13,9 +13,8 @@ enum Match {
     case noMatch
 }
 
-struct MatchMarkers: View {
+struct MatchMarkersView: View {
     // MARK: Data in
-    
     private let matches: [Match]
     
     init(matches: [Match]) {
@@ -55,7 +54,7 @@ struct MatchMarkers: View {
     }
 }
 
-private extension MatchMarkers {
+private extension MatchMarkersView {
     func matchesStacks(rowsPerStack: Int) -> [[Int]] {
         var result: [[Int]] = []
         var stack: [Int] = []
@@ -72,6 +71,6 @@ private extension MatchMarkers {
 }
 
 #Preview {
-    MatchMarkers(matches: [.exact, .noMatch, .exact, .notExact])
+    MatchMarkersView(matches: [.exact, .noMatch, .exact, .notExact])
         .padding()
 }

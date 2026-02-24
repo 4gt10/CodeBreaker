@@ -23,7 +23,7 @@ struct CodeView<AncillaryView>: View where AncillaryView: View {
         _ code: Code,
         kind: CodeBreaker.Kind,
         selection: Binding<Int> = .constant(-1),
-        @ViewBuilder ancillaryView: @escaping () -> AncillaryView
+        @ViewBuilder ancillaryView: @escaping () -> AncillaryView = { EmptyView() }
     ) {
         self.code = code
         self.kind = kind

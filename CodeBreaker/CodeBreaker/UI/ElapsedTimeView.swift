@@ -1,5 +1,5 @@
 //
-//  ElapsedTime.swift
+//  ElapsedTimeView.swift
 //  CodeBreaker
 //
 //  Created by 4gt10 on 22.02.2026.
@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-struct ElapsedTime: View {
+struct ElapsedTimeView: View {
+    // MARK: Data in
     private let startTime: Date
     private let endTime: Date?
     
@@ -38,5 +39,5 @@ private extension SystemFormatStyle.DateOffset {
 }
 
 #Preview {
-    ElapsedTime(startTime: .now, endTime: nil)
+    ElapsedTimeView(startTime: .now, endTime: nil)
 }
