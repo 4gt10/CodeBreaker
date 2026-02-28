@@ -11,19 +11,25 @@ struct ElapsedTimeView: View {
     // MARK: Data in
     private let startTime: Date
     private let endTime: Date?
-    
-    init(startTime: Date, endTime: Date?) {
+    private let hasStarted: Bool
+
+    init(startTime: Date, endTime: Date?, hasStarted: Bool) {
         self.startTime = startTime
         self.endTime = endTime
+        self.hasStarted = hasStarted
     }
-    
+
     var body: some View {
         Group {
-            let format = SystemFormatStyle.DateOffset.from(startTime)
-            if let endTime {
-                Text(endTime, format: format)
+            if hasStarted {
+                let format = SystemFormatStyle.DateOffset.from(startTime)
+                if let endTime {
+                    Text(endTime, format: format)
+                } else {
+                    Text(TimeDataSource<Date>.currentDate, format: format)
+                }
             } else {
-                Text(TimeDataSource<Date>.currentDate, format: format)
+                Text("--:--")
             }
         }
         .flexibleFontSize()
@@ -39,5 +45,5 @@ private extension SystemFormatStyle.DateOffset {
 }
 
 #Preview {
-    ElapsedTimeView(startTime: .now, endTime: nil)
+    ElapsedTimeView(startTime: .now, endTime: nil, hasStarted: false)
 }
