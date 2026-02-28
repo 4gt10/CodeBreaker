@@ -8,23 +8,24 @@
 import SwiftUI
 
 struct CodeBreakerView: View {
-    // MARK: Data Owned by me
-    @State private var game = CodeBreaker()
+    // MARK: Data Shared with me
+    private let game: CodeBreaker
     
+    // MARK: Data Owned by me
     @State private var selection: Int = 0
     @State private var restarting = false
     @State private var hideMostRecentMarkers = false
+    
+    init(game: CodeBreaker) {
+        self.game = game
+    }
     
     // MARK: - Body
     
     var body: some View {
         VStack {
             let kind = game.kind
-            if game.isOver {
-                CodeView(game.masterCode, kind: kind) {
-                    Text("🥳").flexibleFontSize()
-                }
-            }
+            CodeView(game.masterCode, kind: kind)
             ScrollView {
                 if !game.isOver {
                     CodeView(game.guess, kind: kind, selection: $selection) {
@@ -33,13 +34,13 @@ struct CodeBreakerView: View {
                     .animation(nil, value: game.attempts.count)
                     .opacity(restarting ? 0 : 1)
                 }
-                ForEach(game.attempts.indices.reversed(), id: \.self) { index in
-                    let code = game.attempts[index]
+                ForEach(game.attempts, id: \.pegs) { attempt in
+                    let code = attempt
                     let matches = code.matches
-                    let showMarkers = !hideMostRecentMarkers || index != game.attempts.count - 1
+                    let showMarkers = !hideMostRecentMarkers || attempt.pegs != game.attempts.first?.pegs
                     CodeView(code, kind: kind) {
                         if let matches, showMarkers {
-                            MatchMarkers(matches: matches)
+                            MatchMarkersView(matches: matches)
                         }
                     }
                     .transition(
@@ -47,7 +48,6 @@ struct CodeBreakerView: View {
                     )
                 }
             }
-            restartButton
             if !game.isOver {
                 PegChooserView(
                     choices: game.pegChoices,
@@ -58,6 +58,14 @@ struct CodeBreakerView: View {
             }
         }
         .padding()
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                restartButton
+            }
+            ToolbarItem {
+                ElapsedTimeView(startTime: game.startTime, endTime: game.endTime)
+            }
+        }
     }
     
     private var guessButton: some View {
@@ -88,11 +96,11 @@ struct CodeBreakerView: View {
     
     private func restart() {
         withAnimation(.restart) {
-            restarting = true
+            restarting = game.isOver
+            game.restart(kind: game.kind)
+            selection = 0
         } completion: {
             withAnimation(.restart) {
-                game.restart()
-                selection = 0
                 restarting = false
             }
         }
@@ -100,5 +108,5 @@ struct CodeBreakerView: View {
 }
 
 #Preview {
-    CodeBreakerView()
+    CodeBreakerView(game: .init())
 }

@@ -11,9 +11,9 @@ struct PegChooserView: View {
     // MARK: Data in
     private let choices: [Peg]
     private let kind: CodeBreaker.Kind
-    private let onChoose: (Peg) -> Void
+    private let onChoose: ((Peg) -> Void)?
     
-    init(choices: [Peg], kind: CodeBreaker.Kind, onChoose: @escaping (Peg) -> Void) {
+    init(choices: [Peg], kind: CodeBreaker.Kind, onChoose: ((Peg) -> Void)? = nil) {
         self.choices = choices
         self.kind = kind
         self.onChoose = onChoose
@@ -25,7 +25,7 @@ struct PegChooserView: View {
         HStack {
             ForEach(choices, id: \.self) { peg in
                 Button {
-                    onChoose(peg)
+                    onChoose?(peg)
                 } label: {
                     PegView(peg, kind: kind)
                 }

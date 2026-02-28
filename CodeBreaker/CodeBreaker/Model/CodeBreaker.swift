@@ -13,24 +13,24 @@ extension Peg {
     static let missing = ""
     
     var color: Color? {
-        Constant.namedColors[self]
+        CodeBreaker.Constant.namedColors[self]
     }
 }
 
-struct CodeBreaker {
+@Observable final class CodeBreaker {
     enum Kind {
         case colors
-        case emojis
+        case emojis([Peg])
         case unknown
         
-        static func random(with data: [String]) -> Kind {
+        static func with(_ data: [Peg]) -> Kind {
             let isColors = data.allSatisfy { $0.color != nil }
             if data.isEmpty {
                 return .unknown
             } else if isColors {
                 return .colors
             } else {
-                return .emojis
+                return .emojis(data)
             }
         }
     }
@@ -50,8 +50,8 @@ struct CodeBreaker {
         switch kind {
         case .colors:
             result = Constant.colorNames
-        case .emojis:
-            result = Constant.emojiCollections.randomElement() ?? []
+        case .emojis(let pegs):
+            result = pegs
         case .unknown:
             return []
         }
@@ -59,25 +59,30 @@ struct CodeBreaker {
         return Array(result.prefix(upTo: resultCount))
     }
     
+    var name: String
     var kind: Kind = .unknown
-    var masterCode: Code = .init(kind: .masterCode, pegs: [])
+    var masterCode: Code = .init(kind: .masterCode(isHidden: true), pegs: [])
     var guess: Code = .init(kind: .guess, pegs: [])
     var attempts: [Code] = []
     var pegChoices: [Peg] = []
+    var startTime: Date = .now
+    var endTime: Date?
     
     init(
-        kind: Kind = .random(with: Constant.gameCollections.randomElement() ?? []),
+        name: String = "CodeBreaker",
+        kind: Kind = .with(Constant.gameCollections.randomElement() ?? []),
         pegsCount: Int = .random(in: Constant.minimumPegsCount...Constant.maximumPegsCount)
     ) {
+        self.name = name
         restart(kind: kind, pegsCount: pegsCount)
     }
     
     var isOver: Bool {
-        attempts.last?.pegs == masterCode.pegs
+        attempts.first?.pegs == masterCode.pegs
     }
     
-    mutating func restart(
-        kind: Kind = .random(with: Constant.gameCollections.randomElement() ?? []),
+    func restart(
+        kind: Kind = .with(Constant.gameCollections.randomElement() ?? []),
         pegsCount: Int = .random(in: Constant.minimumPegsCount...Constant.maximumPegsCount)
     ) {
         self.kind = kind
@@ -85,13 +90,15 @@ struct CodeBreaker {
             for: kind,
             count: Int.random(in: Constant.minimumPegsCount...Constant.maximumPegsCount)
         )
-        masterCode = .init(kind: .masterCode, pegs: pegChoices)
+        masterCode = .init(kind: .masterCode(isHidden: true), pegs: pegChoices)
         masterCode.randomize(from: pegChoices)
         guess = .init(kind: .guess, pegs: Array(repeating: Peg.missing, count: pegChoices.count))
         attempts = []
+        startTime = .now
+        endTime = nil
     }
     
-    mutating func attemptGuess() {
+    func attemptGuess() {
         if attempts.contains(where: { $0.pegs == guess.pegs }) {
             print("Guess error: Already tried this combination")
             return
@@ -102,11 +109,17 @@ struct CodeBreaker {
         }
         var attempt = guess
         attempt.kind = .attempt(attempt.match(against: masterCode))
-        attempts.append(attempt)
+        attempts.insert(attempt, at: 0)
         guess.reset()
+        
+        if isOver {
+            let masterCode = self.masterCode
+            self.masterCode = .init(kind: .masterCode(isHidden: false), pegs: masterCode.pegs)
+            endTime = .now
+        }
     }
     
-    mutating func changeGuessPeg(at index: Int) {
+    func changeGuessPeg(at index: Int) {
         let existingPeg = guess.pegs[index]
         if let indexOfExistingPegInPegChocies = pegChoices.firstIndex(of: existingPeg) {
             let newPeg = pegChoices[(indexOfExistingPegInPegChocies + 1) % pegChoices.count]
@@ -116,61 +129,73 @@ struct CodeBreaker {
         }
     }
     
-    mutating func setGuessPeg(_ peg: Peg, at index: Int) {
+    func setGuessPeg(_ peg: Peg, at index: Int) {
         guard guess.pegs.indices.contains(index) else { return }
         
         guess.pegs[index] = peg
     }
 }
 
-private enum Constant {
-    static let minimumPegsCount = 3
-    static let maximumPegsCount = 6
-    static let namedColors: [String: Color] = [
-        "black": .black, "gray": .gray,
-        "red": .red, "green": .green, "blue": .blue,
-        "orange": .orange, "yellow": .yellow, "pink": .pink,
-        "purple": .purple
-    ]
-    static let colorNames = Array<String>(namedColors.keys)
-    static let colors = Array<Color>(namedColors.values)
-    static let smileyEmojis: [String] = [
-        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
-        "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
-        "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜",
-        "🤪", "🤨", "🧐", "🤓", "😎", "🥳", "😏", "😒"
-    ]
-    static let carEmojis: [String] = [
-        "🚗", "🚕", "🚙", "🚌",
-        "🚎", "🏎️", "🚓", "🚑",
-        "🚒", "🚐", "🚚", "🚛",
-        "🚜", "🛵", "🏍️", "🚲"
-    ]
-    static let animalEmojis: [String] = [
-        // Mammals
-        "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐻‍❄️", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐒",
-        "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛",
-        // Reptiles & Amphibians
-        "🐊", "🐢", "🐍", "🦎", "🐸", "🐙",
-        // Marine
-        "🐠", "🐟", "🐡", "🐬", "🐳", "🐋", "🦈",
-        // Insects & Small Critters
-        "🐞", "🦋", "🐌", "🐜", "🦟", "🦗", "🕷️", "🕸️", "🐝",
-        // Farm & Work Animals
-        "🐄", "🐖", "🐏", "🐑", "🐐", "🐪", "🐫", "🦙", "🦒", "🐘", "🦏", "🦛", "🐁", "🐀",
-        // Wild Animals
-        "🦍", "🦧", "🐆", "🐅", "🐊", "🦓", "🦌", "🦬", "🐃", "🦣", "🦫", "🐫",
-        // Birds (more)
-        "🦜", "🦢", "🦩", "🕊️", "🐦‍⬛", "🦚", "🦃", "🐓",
-        // Sea Creatures (more)
-        "🐚", "🪸", "🐠", "🐟",
-        // Prehistoric
-        "🦕", "🦖"
-    ]
-    static let emojiCollections: [[String]] = [
-        smileyEmojis,
-        animalEmojis,
-        carEmojis
-    ]
-    static let gameCollections: [[String]] = [colorNames] + emojiCollections
+extension CodeBreaker: Identifiable, Hashable, Equatable {
+    static func == (lhs: CodeBreaker, rhs: CodeBreaker) -> Bool {
+        lhs.id == rhs.id
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+}
+
+extension CodeBreaker {
+    enum Constant {
+        static let minimumPegsCount = 3
+        static let maximumPegsCount = 6
+        static let namedColors: [String: Color] = [
+            "black": .black, "gray": .gray,
+            "red": .red, "green": .green, "blue": .blue,
+            "orange": .orange, "yellow": .yellow, "pink": .pink,
+            "purple": .purple
+        ]
+        static let colorNames = Array<String>(namedColors.keys)
+        static let colors = Array<Color>(namedColors.values)
+        static let smileyEmojis: [String] = [
+            "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
+            "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
+            "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜",
+            "🤪", "🤨", "🧐", "🤓", "😎", "🥳", "😏", "😒"
+        ]
+        static let carEmojis: [String] = [
+            "🚗", "🚕", "🚙", "🚌",
+            "🚎", "🏎️", "🚓", "🚑",
+            "🚒", "🚐", "🚚", "🚛",
+            "🚜", "🛵", "🏍️", "🚲"
+        ]
+        static let animalEmojis: [String] = [
+            // Mammals
+            "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐻‍❄️", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐒",
+            "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇", "🐺", "🐗", "🐴", "🦄", "🐝", "🐛",
+            // Reptiles & Amphibians
+            "🐊", "🐢", "🐍", "🦎", "🐸", "🐙",
+            // Marine
+            "🐠", "🐟", "🐡", "🐬", "🐳", "🐋", "🦈",
+            // Insects & Small Critters
+            "🐞", "🦋", "🐌", "🐜", "🦟", "🦗", "🕷️", "🕸️", "🐝",
+            // Farm & Work Animals
+            "🐄", "🐖", "🐏", "🐑", "🐐", "🐪", "🐫", "🦙", "🦒", "🐘", "🦏", "🦛", "🐁", "🐀",
+            // Wild Animals
+            "🦍", "🦧", "🐆", "🐅", "🐊", "🦓", "🦌", "🦬", "🐃", "🦣", "🦫", "🐫",
+            // Birds (more)
+            "🦜", "🦢", "🦩", "🕊️", "🐦‍⬛", "🦚", "🦃", "🐓",
+            // Sea Creatures (more)
+            "🐚", "🪸", "🐠", "🐟",
+            // Prehistoric
+            "🦕", "🦖"
+        ]
+        static let emojiCollections: [[String]] = [
+            smileyEmojis,
+            animalEmojis,
+            carEmojis
+        ]
+        static let gameCollections: [[String]] = [colorNames] + emojiCollections
+    }
 }
