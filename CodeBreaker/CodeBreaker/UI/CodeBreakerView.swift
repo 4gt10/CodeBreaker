@@ -81,6 +81,7 @@ struct CodeBreakerView: View {
                 )
             }
         }
+        .trackTime(for: game)
         .onAppear {
             showCelebration = game.isOver
         }

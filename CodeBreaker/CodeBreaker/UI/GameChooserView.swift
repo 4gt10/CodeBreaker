@@ -48,7 +48,7 @@ struct GameChooserView: View {
         NavigationSplitView {
             gameList { game in
                 Button {
-                    selectedGame = game
+                    selectGame(game)
                 } label: {
                     GameSummaryView(game: game)
                         .contentShape(Rectangle())
@@ -118,6 +118,11 @@ struct GameChooserView: View {
         if !games.contains(game) {
             games.insert(game, at: 0)
         }
+        selectGame(game)
+    }
+
+    private func selectGame(_ game: CodeBreaker) {
+        selectedGame?.pauseTimerIfNeeded()
         selectedGame = game
     }
 

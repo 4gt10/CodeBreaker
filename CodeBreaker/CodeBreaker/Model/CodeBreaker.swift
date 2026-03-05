@@ -54,6 +54,7 @@ final class CodeBreaker {
     var customColorPegs: [Peg]?
     var startTime: Date = .now
     var endTime: Date?
+    private var timerPausedAt: Date?
 
     // MARK: - Initialization
 
@@ -126,6 +127,7 @@ extension CodeBreaker {
         attempts = []
         startTime = .now
         endTime = nil
+        timerPausedAt = nil
     }
 }
 
@@ -154,9 +156,21 @@ extension CodeBreaker {
             let masterCode = self.masterCode
             self.masterCode = .init(kind: .masterCode(isHidden: false), pegs: masterCode.pegs)
             endTime = .now
+            timerPausedAt = nil
         }
 
         return .success(())
+    }
+
+    func pauseTimerIfNeeded() {
+        guard !attempts.isEmpty, endTime == nil, timerPausedAt == nil else { return }
+        timerPausedAt = .now
+    }
+
+    func resumeTimerIfNeeded() {
+        guard !attempts.isEmpty, endTime == nil, let timerPausedAt else { return }
+        startTime = startTime.addingTimeInterval(Date.now.timeIntervalSince(timerPausedAt))
+        self.timerPausedAt = nil
     }
 
     func changeGuessPeg(at index: Int) {
