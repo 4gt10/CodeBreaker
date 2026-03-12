@@ -36,8 +36,15 @@ struct PegChooserView: View {
 
 #Preview {
     PegChooserView(
-        choices: [.missing],
+        choices: [Color.red.hex, Color.green.hex, Color.blue.hex],
         kind: .colors,
         onChoose: { _ in }
     )
+    .padding()
+    PegChooserView(
+        choices: ["😀", "😂", "😍"],
+        kind: .emojis([]),
+        onChoose: { _ in }
+    )
+    .padding()
 }

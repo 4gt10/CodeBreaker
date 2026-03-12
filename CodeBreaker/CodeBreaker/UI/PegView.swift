@@ -42,6 +42,9 @@ struct PegView: View {
 }
 
 #Preview {
-    PegView(.missing, kind: .colors)
+    PegView(Color.red.hex, kind: .colors)
+        .frame(maxWidth: 100.0)
+        .padding()
+    PegView("😀", kind: .emojis([]))
         .padding()
 }

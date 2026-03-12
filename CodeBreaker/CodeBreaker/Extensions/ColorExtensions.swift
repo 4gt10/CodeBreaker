@@ -30,7 +30,7 @@ extension Color {
         self = Color(red: red, green: green, blue: blue)
     }
 
-    var hexString: String? {
+    var hex: String {
         let uiColor = UIColor(self)
 
         var red: CGFloat = 0
@@ -39,7 +39,7 @@ extension Color {
         var alpha: CGFloat = 0
 
         guard uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
-            return nil
+            return .missing
         }
 
         let redInt = Int((red * 255.0).rounded())

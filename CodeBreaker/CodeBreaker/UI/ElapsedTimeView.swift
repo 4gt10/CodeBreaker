@@ -9,11 +9,11 @@ import SwiftUI
 
 struct ElapsedTimeView: View {
     // MARK: Data in
-    private let startTime: Date
+    private let startTime: Date?
     private let endTime: Date?
     private let hasStarted: Bool
 
-    init(startTime: Date, endTime: Date?, hasStarted: Bool) {
+    init(startTime: Date?, endTime: Date?, hasStarted: Bool) {
         self.startTime = startTime
         self.endTime = endTime
         self.hasStarted = hasStarted
@@ -21,7 +21,7 @@ struct ElapsedTimeView: View {
 
     var body: some View {
         Group {
-            if hasStarted {
+            if let startTime, hasStarted {
                 let format = SystemFormatStyle.DateOffset.from(startTime)
                 if let endTime {
                     Text(endTime, format: format)

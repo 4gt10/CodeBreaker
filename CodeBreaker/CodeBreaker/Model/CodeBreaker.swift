@@ -5,6 +5,7 @@
 //  Created by 4gt10 on 15.02.2026.
 //
 
+import SwiftData
 import SwiftUI
 
 typealias Peg = String
@@ -17,7 +18,7 @@ extension Peg {
     }
 }
 
-@Observable
+@Model
 final class CodeBreaker {
     // MARK: - Types
 
@@ -46,14 +47,32 @@ final class CodeBreaker {
     // MARK: - Stored Properties
 
     var name: String
-    var kind: Kind = .unknown
-    var masterCode: Code = .init(kind: .masterCode(isHidden: true), pegs: [])
-    var guess: Code = .init(kind: .guess, pegs: [])
-    var attempts: [Code] = []
+    var _kind: String
+    @Relationship(deleteRule: .cascade)
+    var masterCode: Code
+    @Relationship(deleteRule: .cascade)
+    var guess: Code
+    @Relationship(deleteRule: .cascade)
+    var _attempts: [Code] = []
     var pegChoices: [Peg] = []
     var customColorPegs: [Peg]?
-    var startTime: Date = .now
+    var startTime: Date?
     var endTime: Date?
+    
+    var kind: Kind {
+        get { Kind(_kind) }
+        set { _kind = newValue.description }
+    }
+    
+    var attempts: [Code] {
+        get { _attempts.sorted(by: { $0.timestamp > $1.timestamp }) }
+        set { _attempts = newValue }
+    }
+    
+    var lastAttemptDate: Date? {
+        attempts.last?.timestamp
+    }
+    
     private var timerPausedAt: Date?
 
     // MARK: - Initialization
@@ -64,6 +83,9 @@ final class CodeBreaker {
         pegsCount: Int = .random(in: Constant.minimumPegsCount...Constant.maximumPegsCount)
     ) {
         self.name = name
+        self._kind = kind.editorSelectionKind.description
+        self.masterCode = .init(kind: .masterCode(isHidden: true), pegs: [])
+        self.guess = .init(kind: .guess, pegs: [])
         restart(kind: kind, pegsCount: pegsCount)
     }
 
@@ -105,7 +127,7 @@ extension CodeBreaker {
         kind: Kind = .with(Constant.gameCollections.randomElement() ?? []),
         pegsCount: Int = .random(in: Constant.minimumPegsCount...Constant.maximumPegsCount)
     ) {
-        self.kind = kind.editorSelectionKind
+        self._kind = kind.editorSelectionKind.description
 
         switch kind.editorSelectionKind {
         case .colors:
@@ -142,7 +164,7 @@ extension CodeBreaker {
             return .failure(.incompleteGuess)
         }
 
-        var attempt = guess
+        let attempt = Code(kind: guess.kind, pegs: guess.pegs)
         attempt.kind = .attempt(attempt.match(against: masterCode))
         attempts.insert(attempt, at: 0)
 
@@ -153,8 +175,8 @@ extension CodeBreaker {
         guess.reset()
 
         if isOver {
-            let masterCode = self.masterCode
-            self.masterCode = .init(kind: .masterCode(isHidden: false), pegs: masterCode.pegs)
+            let pegs = masterCode.pegs
+            self.masterCode = .init(kind: .masterCode(isHidden: false), pegs: pegs)
             endTime = .now
             timerPausedAt = nil
         }
@@ -164,12 +186,14 @@ extension CodeBreaker {
 
     func pauseTimerIfNeeded() {
         guard !attempts.isEmpty, endTime == nil, timerPausedAt == nil else { return }
+        
         timerPausedAt = .now
     }
 
     func resumeTimerIfNeeded() {
-        guard !attempts.isEmpty, endTime == nil, let timerPausedAt else { return }
-        startTime = startTime.addingTimeInterval(Date.now.timeIntervalSince(timerPausedAt))
+        guard !attempts.isEmpty, endTime == nil, let timerPausedAt, let startTime else { return }
+        
+        self.startTime = startTime.addingTimeInterval(Date.now.timeIntervalSince(timerPausedAt))
         self.timerPausedAt = nil
     }
 
@@ -250,8 +274,8 @@ extension CodeBreaker {
         var result: [Color] = []
 
         for color in colors {
-            guard let hex = color.hexString else { continue }
-            if seen.insert(hex).inserted {
+            guard color.hex != .missing else { continue }
+            if seen.insert(color.hex).inserted {
                 result.append(color)
             }
         }
@@ -297,9 +321,9 @@ extension CodeBreaker {
                 break
             }
 
-            guard let defaultHex = defaultColor.hexString else { continue }
-            let existingHexes = Set(result.compactMap(\.hexString))
-            if !existingHexes.contains(defaultHex) {
+            guard defaultColor.hex != .missing else { continue }
+            let existingHexes = Set(result.compactMap(\.hex))
+            if !existingHexes.contains(defaultColor.hex) {
                 result.append(defaultColor)
             }
         }
@@ -311,10 +335,10 @@ extension CodeBreaker {
         let normalized = normalizedEditorColors(colors)
         guard normalized.count < Constant.maximumPegsCount else { return normalized }
 
-        let existingHexes = Set(normalized.compactMap(\.hexString))
+        let existingHexes = Set(normalized.compactMap(\.hex))
         for defaultColor in defaultEditorColors {
-            guard let defaultHex = defaultColor.hexString else { continue }
-            if !existingHexes.contains(defaultHex) {
+            guard defaultColor.hex != .missing else { continue }
+            if !existingHexes.contains(defaultColor.hex) {
                 return normalized + [defaultColor]
             }
         }
@@ -333,7 +357,7 @@ extension CodeBreaker {
     }
 
     static func editorColorPegs(from colors: [Color]) -> [Peg] {
-        normalizedEditorColors(colors).compactMap { $0.hexString }
+        normalizedEditorColors(colors).compactMap { $0.hex }
     }
 
     func applyEditorChanges(name: String, kind: Kind, emojiText: String, colors: [Color]) {
@@ -378,15 +402,48 @@ extension CodeBreaker.Kind {
     }
 }
 
-// MARK: - Protocol Conformance
+// MARK: - Kind String Conversion
 
-extension CodeBreaker: Identifiable, Hashable, Equatable {
-    static func == (lhs: CodeBreaker, rhs: CodeBreaker) -> Bool {
-        lhs.id == rhs.id
+extension CodeBreaker.Kind: LosslessStringConvertible {
+    var description: String {
+        switch self {
+        case .colors:
+            return "colors"
+        case .emojis(let pegs):
+            let encoded = pegs.joined(separator: ",")
+            return "emojis:\(encoded)"
+        case .unknown:
+            return "unknown"
+        }
     }
 
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
+    init(_ description: String) {
+        let trimmed = description.trimmingCharacters(in: .whitespacesAndNewlines)
+        let lowercased = trimmed.lowercased()
+
+        if lowercased == "colors" {
+            self = .colors
+            return
+        }
+
+        if lowercased == "unknown" {
+            self = .unknown
+            return
+        }
+
+        if lowercased.hasPrefix("emojis:") {
+            let value = trimmed.dropFirst("emojis:".count)
+            let rawPegs = value.split(separator: ",", omittingEmptySubsequences: true).map { String($0) }
+            if rawPegs.isEmpty {
+                self = .unknown
+                return
+            }
+            self = .emojis(rawPegs)
+            return
+        }
+
+        self = .unknown
+        return
     }
 }
 
